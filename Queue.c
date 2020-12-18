@@ -14,7 +14,7 @@ Queue* InitializeQueue()
 	Queue* new_q = (Queue*)malloc(sizeof(Queue));
 	if (new_q == NULL)
 	{
-		printf("Memory Error - Couldn't initialize queue. ABORT.");
+		printf("InitializeQueue: Memory Error - Couldn't initialize queue.\n");
 		return NULL;
 	}
 	new_q->front = NULL;
@@ -41,38 +41,36 @@ Element* Top(Queue* q)
 		printf("Queue is empty.");
 		return NULL;
 	}
-	printf("returns element with index: %d\n", q->front->index);
 	return q->front;
 }
 
-int Pop(Queue* q)
+void Pop(Queue* q)
 {
 	if (Empty(q))
 	{
-		printf("Can not Pop. Queue is empty.");
-		return FAILURE;
+		printf("Queue is empty, nothing to pop");
+		return;
 	}
 
+	Element* temp = NULL;
+	temp = q->front;
 	q->front = q->front->next;
+	free(temp);
 
 	if (NULL == q->front)
 	{
 		q->rear = NULL;
 	}
-	return SUCCESS;
 }
 
-int DestoryQueue(Queue* q)
+void DestroyQueue(Queue* q)
 {
-	while (Empty(q) != true)
+	while (!Empty(q))
 	{
 		Pop(q);
-		printf("Popped!\n");
 	}
 	free(q);
 	q = NULL;
-	printf("Queue has been destroyed successfully!\n");
-	return SUCCESS;
 }
 
 void Push(Queue* q, Element* p_element)

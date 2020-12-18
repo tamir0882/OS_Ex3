@@ -13,7 +13,7 @@ Element* Top(Queue* q);
 
 int Pop(Queue* q);
 
-int DestoryQueue(Queue* q);
+void DestroyQueue(Queue* q);
 
 
 #endif //__QUEUE_h__

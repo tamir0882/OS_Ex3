@@ -1,6 +1,3 @@
-
-
-
 #include <stdio.h>
 #include <string.h>
 #include <windows.h>
@@ -15,122 +12,96 @@
 
 int main(int argc, char** argv)
 {
-	if (argc != EXPECTED_ARGC)
-	{
-		printf("%d arguments are expected. Can't run, Exitting.\n", EXPECTED_ARGC);
-		return FAILURE;
-	}
-
-	int ret_val = 0;
-	char mission_file_name[_MAX_PATH] = { 0 };
-	ret_val = snprintf(mission_file_name, _MAX_PATH, "%s", argv[MISSION_FILE_OFFSET]);
-	if (0 == ret_val)
-	{
-		printf("mission file name invalid.\n");
-		return FAILURE;
-	}
-
-
-	char priority_file_name[_MAX_PATH] = { 0 };
-	ret_val = snprintf(priority_file_name, _MAX_PATH, "%s", argv[PRIORITY_FILE_OFFSET]);
-	if (0 == ret_val)
-	{
-		printf("priority file name invalid.\n");
-		return FAILURE;
-	}
-
+	
 	int exit_code = SUCCESS;
 
+	char mission_file_name[_MAX_PATH] = { 0 };
+	char priority_file_name[_MAX_PATH] = { 0 };
 	HANDLE h_priority_file = NULL;
-	h_priority_file = create_file_for_read(priority_file_name);
-
-	//check if function failed
-	if (NULL == h_priority_file)
+	int number_of_missions = 0;
+	
+	exit_code = initialize_main_thread(argc, argv, mission_file_name, priority_file_name, &h_priority_file, &number_of_missions);
+	if (FAILURE == exit_code)
 	{
-		printf("create_file_for_read returned NULL pointer.\n"
-			"Exitting program.\n");
+		printf("main: initialize_main_thread failed.\n");
 		return FAILURE;
 	}
 
-	
-	int number_of_missions = 0;
-	number_of_missions = (int)strtol(argv[NUMBER_OF_LINES_OFFSET], NULL, DECIMAL_BASE);
 
-	if (number_of_missions == 0)
+	Queue* q = NULL;
+	q = create_queue(h_priority_file, number_of_missions);
+	if (NULL == q)
 	{
+		printf("main: create_queue failed.\n");
 		exit_code = FAILURE;
-		printf("ERROR in main - strtol has failed.\n");
 		goto Close_Priority_File_Handle;
 	}
 
-	int temp = 0;
-	int next_line_index = 0;
-	int mission_index = 0;
-	DWORD thread_id = 0;
-	HANDLE thread_handle = NULL;
-	Data thread_data = { .index = 0, .mission_file_name = NULL };
-	int wait_code = 0;
 
+
+	Data thread_data = { .q = q,.number_of_missions = number_of_missions, .mission_file_name = NULL };
+	DWORD thread_ids[MAXIMUM_WAIT_OBJECTS] = { 0 };
+	HANDLE thread_handles = { 0 };
+	
+	int ret_val = 0;
 	ret_val = snprintf(thread_data.mission_file_name, _MAX_PATH, "%s", mission_file_name);
 	if (FALSE == ret_val)
 	{
 		printf("main: snprintf failed.\n");
 		exit_code = FAILURE;
-		goto Close_Priority_File_Handle;
+		goto Destroy_Queue;
 	}
 
-	for (int i = 0; i < number_of_missions; i++)
+	
+	int wait_code = 0;
+	HANDLE h_thread = NULL;
+
+	h_thread = create_thread_simple(mission_thread, thread_ids, &thread_data);
+	if (NULL == h_thread)
 	{
-		ret_val = SetFilePointer(h_priority_file, next_line_index, NULL, FILE_BEGIN);
-		if (INVALID_SET_FILE_POINTER == ret_val)
-		{
-			printf("main: SetFilePointer failed.\n");
-			exit_code = FAILURE;
-			goto Close_Priority_File_Handle;
-		}
-		temp = set_mission_index(h_priority_file, &thread_data);
+		printf("main: create_thread_simple failed.\n");
+		exit_code = FAILURE;
+		goto Destroy_Queue;
+	}
 
-		if (FAILURE == temp)
-		{
-			printf("main: get_mission_index failed.\n");
-			exit_code = FAILURE;
-			goto Close_Priority_File_Handle;
-		}
-		next_line_index += temp;
+	wait_code = WaitForSingleObject(h_thread, WAIT_TIME);
+	if (wait_code != WAIT_OBJECT_0)
+	{
+		printf("main: waiting for thread failure.\n");
+		exit_code = FAILURE;
+		goto Close_Thread_Handle;
+	}
 
-		HANDLE h_thread = NULL;
-		h_thread = create_thread_simple(mission_thread, &thread_id, &thread_data);
-		if (NULL == h_thread)
-		{
-			printf("main: create_thread_simple failed.\n");
-			exit_code = FAILURE;
-			goto Close_Priority_File_Handle;
-		}
-
-		wait_code = WaitForSingleObject(h_thread, WAIT_TIME);
-		if (wait_code != WAIT_OBJECT_0)
-		{
-			printf("wait failed.\n");
-			exit_code = FAILURE;
-			goto Close_Priority_File_Handle;
-		}
-
-		if (0 == CloseHandle(h_thread))
-		{
-			printf("handle wasn't close.\n");
-			exit_code = FAILURE;
-			goto Close_Priority_File_Handle;
-		}
-		//HERE NEED TO CREATE THREAD THAT WOULD CALCULATE AND PRINT 
-		//THE PRIME NUMBERS IN THE CORRECT FORMAT FOR EACH MISSION
+	ret_val = GetExitCodeThread(h_thread, &exit_code);
+	if (exit_code == FAILURE)
+	{
+		printf("main: thread exit_code was FAILURE.\n");
+		goto Close_Thread_Handle;
 	}
 	
 
-
-Close_Priority_File_Handle: 
-	if (0 == CloseHandle(h_priority_file))
+Close_Thread_Handle:
+	if (NULL != h_thread)
 	{
-		printf("close_handle failed.\n");
+		if (0 == CloseHandle(h_thread))
+		{
+			printf("main: couldn't close thread handle.\n");
+		}
+	}
+
+Destroy_Queue:
+	if (q != NULL)
+	{
+		DestroyQueue(q);
+	}
+
+Close_Priority_File_Handle:
+	if (h_priority_file != NULL) 
+	{
+		if (0 == CloseHandle(h_priority_file))
+		{
+			printf("close_handle failed.\n");
+		}
 	}
 
 	return exit_code;

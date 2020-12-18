@@ -15,6 +15,8 @@
 #define NUMBER_OF_THREADS_OFFSET 4
 
 #define INITIAL_ALLOCATION_SIZE 3
+#define WHITESPACE_COMMA_FACTOR 3
+
 
 #define DEFAULT_STACK_SIZE 0
 #define DEFAULT_CREATION_FLAGS 0
@@ -24,12 +26,6 @@
 
 #define WAIT_TIME 5000
 
-typedef struct Data
-{
-	//int mission;
-	int index;
-	char mission_file_name[_MAX_PATH];
-} Data;
 
 typedef struct Element
 {
@@ -37,10 +33,21 @@ typedef struct Element
 	struct Element* next;
 } Element;
 
+
 typedef struct Queue
 {
 	struct Element* front;
 	struct Element* rear;
 } Queue;
+
+
+typedef struct Data
+{
+	Queue* q;
+	int number_of_missions;
+	char mission_file_name[_MAX_PATH];
+} Data;
+
+
 
 #endif //__HARD_CODED_DATA_H__

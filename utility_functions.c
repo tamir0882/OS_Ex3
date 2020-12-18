@@ -6,9 +6,7 @@
 #include <math.h>
 
 #include "HardCodedData.h"
-
-
-
+#include "Queue.h"
 
 /* HANDLE create_file_for_read: a wrapper for CreateFileA.
 
@@ -19,7 +17,7 @@
 * on success - a handle to a file with GENERIC_READ permission
 * on failure - NULL
 */
-HANDLE create_file_for_read(LPCSTR file_name)
+HANDLE create_file_for_read(char* file_name)
 {
 	if (NULL == file_name)
 	{
@@ -35,6 +33,63 @@ HANDLE create_file_for_read(LPCSTR file_name)
 		return NULL;
 	}
 	return h_file;
+}
+
+
+
+
+int initialize_main_thread(int argc, char** argv, char mission_file_name[_MAX_PATH],
+	char priority_file_name[_MAX_PATH], HANDLE* p_h_priority_file, int* p_number_of_missions)
+{
+	if (argc != EXPECTED_ARGC)
+	{
+		printf("%d arguments are expected. Can't run, Exitting.\n", EXPECTED_ARGC);
+		return FAILURE;
+	}
+
+	int ret_val = 0;
+
+
+	ret_val = snprintf(mission_file_name, _MAX_PATH, "%s", argv[MISSION_FILE_OFFSET]);
+	if (0 == ret_val)
+	{
+		printf("mission file name invalid.\n");
+		return FAILURE;
+	}
+
+
+
+	ret_val = snprintf(priority_file_name, _MAX_PATH, "%s", argv[PRIORITY_FILE_OFFSET]);
+	if (0 == ret_val)
+	{
+		printf("priority file name invalid.\n");
+		return FAILURE;
+	}
+
+
+
+	*p_h_priority_file = create_file_for_read(priority_file_name);
+
+	//check if function failed
+	if (NULL == *p_h_priority_file)
+	{
+		printf("create_file_for_read returned NULL pointer.\n"
+			"Exitting program.\n");
+		return FAILURE;
+	}
+
+
+	*p_number_of_missions = (int)strtol(argv[NUMBER_OF_LINES_OFFSET], NULL, DECIMAL_BASE);
+	if (*p_number_of_missions == 0)
+	{
+		printf("ERROR in main - strtol has failed.\n");
+		if (0 == CloseHandle(*p_h_priority_file))
+		{
+			printf("close_handle failed.\n");
+		}
+		return FAILURE;
+	}
+	return SUCCESS;
 }
 
 
@@ -102,9 +157,7 @@ HANDLE open_file_for_read_and_write(LPCSTR file_name)
 */
 
 
-
-
-int set_mission_index(HANDLE h_priority_file, Data* p_thread_data)
+int set_mission_index(HANDLE h_priority_file, Element* p_element, int line_index)
 {
 	if (NULL == h_priority_file)
 	{
@@ -112,16 +165,26 @@ int set_mission_index(HANDLE h_priority_file, Data* p_thread_data)
 		return FAILURE;
 	}
 
-	char buffer = 0;
-	int ret_read = 0;
 
-	int count = 0;
+	int ret_val = 0;
+
+	ret_val = SetFilePointer(h_priority_file, line_index, NULL, FILE_BEGIN);
+	if (INVALID_SET_FILE_POINTER == ret_val)
+	{
+		printf("create_queue: SetFilePointer failed.\n");
+		return FAILURE;
+	}
+
+	char buffer = 0;
+	
+
+	int count_charcters_in_line = 0;
 	int index = 0;
 
 	while (TRUE)
 	{
-		ret_read = ReadFile(h_priority_file, &buffer, BUFFER_SIZE_1, NULL, NULL);
-		if (FALSE == ret_read)
+		ret_val = ReadFile(h_priority_file, &buffer, BUFFER_SIZE_1, NULL, NULL);
+		if (FALSE == ret_val)
 		{
 			printf("FILE ERROR - ReadFile failed in get_index.\n");
 			return FAILURE;
@@ -129,7 +192,7 @@ int set_mission_index(HANDLE h_priority_file, Data* p_thread_data)
 
 		if (buffer == '\r')
 		{
-			count += 2;
+			count_charcters_in_line += 2;
 			break;
 		}
 
@@ -152,11 +215,11 @@ int set_mission_index(HANDLE h_priority_file, Data* p_thread_data)
 				return FAILURE;
 			}
 		}
-		count++;
+		count_charcters_in_line++;
 	}
 
-	p_thread_data->index = index;
-	return count;
+	p_element->index = index;
+	return count_charcters_in_line;
 }
 
 
@@ -183,6 +246,7 @@ int get_mission(HANDLE h_mission_file)
 		{
 			break;
 		}
+
 		if (0 == mission)
 		{
 			mission = (int)(strtol(&read_buffer, NULL, DECIMAL_BASE));
@@ -207,6 +271,51 @@ int get_mission(HANDLE h_mission_file)
 }
 
 
+Queue* create_queue(HANDLE h_priority_file, int number_of_missions)
+{
+	Queue* q = NULL;
+	q = InitializeQueue();
+	if (NULL == q)
+	{
+		printf("create_queue: InitializeQueue failed.\n");
+		return NULL;
+	}
+
+	int ret_val = 0;
+	int next_line_index = 0;
+	int next_line_offset = 0;
+
+	Element** p_p_elements = NULL;
+	p_p_elements = (Element**)malloc(number_of_missions * sizeof(Element*));
+	if (NULL == p_p_elements)
+	{
+		printf("create_queue: Memory allocation failure.\n");
+		DestroyQueue(q);
+		return NULL;
+	}
+
+	for (int i = 0; i < number_of_missions; i++)
+	{
+		*p_p_elements = (Element*)malloc(sizeof(Element));
+
+		next_line_offset = set_mission_index(h_priority_file, *p_p_elements, next_line_index);
+		if (FAILURE == next_line_offset)
+		{
+			printf("create_queue: set_mission_index failed.\n");
+			DestroyQueue(q);
+			free(p_p_elements);
+			return NULL;
+		}
+		next_line_index += next_line_offset;
+
+		Push(q, *p_p_elements);
+		p_p_elements++;
+	}
+
+	p_p_elements -= (number_of_missions);
+	free(p_p_elements);
+	return q;
+}
 
 
 
@@ -257,6 +366,12 @@ int find_prime_factors(int* Primes, int allocation_size, int n)
 	//get number of 2 needed.
 	int index = 0;
 	int* temp = NULL;
+
+	if (0 == n)
+	{
+		printf("find_prime_factors: invalid input.\n");
+		return FAILURE;
+	}
 
 	while ((n % 2) == 0)
 	{
