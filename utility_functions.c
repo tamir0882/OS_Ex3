@@ -107,18 +107,20 @@ Data* initialize_threads_data(int number_of_threads, char mission_file_name[_MAX
 	int bytes_written = 0;
 	for (int i = 0; i < number_of_threads; i++)
 	{
-		p_threads_data[i].h_q_mutex = h_q_mutex;
-		p_threads_data[i].lock = lock;
+		p_threads_data->h_q_mutex = h_q_mutex;
+		p_threads_data->lock = lock;
 		
-		p_threads_data[i].q = q;
-		bytes_written = snprintf(p_threads_data[i].mission_file_name, _MAX_PATH, "%s", mission_file_name);
+		p_threads_data->q = q;
+		bytes_written = snprintf(p_threads_data->mission_file_name, _MAX_PATH, "%s", mission_file_name);
 		if (bytes_written <= 0 || bytes_written > _MAX_PATH)
 		{
 			printf("initialize_threads_data: snprintf failed.\n");
 			free(p_threads_data);
 			return NULL;
 		}
+		p_threads_data++;
 	}
+	p_threads_data -= number_of_threads;
 	return p_threads_data;
 }
 
