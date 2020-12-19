@@ -28,7 +28,7 @@ Lock* InitializeLock()
 
 	lock->h_room_empty = CreateSemaphoreA(
 		NULL,           // default security attributes
-		1,  // initial count
+		INITIAL_SEMAPHORE_COUNT,  // initial count
 		MAXIMUM_WAIT_OBJECTS,  // maximum count
 		NULL);          // unnamed semaphore
 	if (NULL == lock->h_room_empty)
@@ -135,10 +135,9 @@ Close_Handles:
 			printf("read_lock: Close_Handle couldn't close h_turnstile");
 		}
 	}
+
 	free(lock);
 	return FAILURE;
-
-
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////

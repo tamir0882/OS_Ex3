@@ -24,8 +24,9 @@
 
 #define FIXED_BUFFER_SIZE 40
 
+#define INITIAL_SEMAPHORE_COUNT 1
 
-#define WAIT_TIME 500000
+#define WAIT_TIME 5000
 
 
 typedef struct Element
