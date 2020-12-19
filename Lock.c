@@ -1,19 +1,7 @@
 #include <stdio.h>
 #include <windows.h>
 
-int SUCCESS = 0;
-int FAILURE = -1;
-int WAIT_TIME = 5000;
-
-typedef struct Lock
-{
-	int readers;
-	HANDLE h_mutex;
-	HANDLE h_room_empty;
-	HANDLE h_turnstile;
-
-} Lock;
-
+#include "HardCodedData.h"
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
 Lock* InitializeLock()
@@ -24,20 +12,20 @@ Lock* InitializeLock()
 		printf("InitializeLock: Memory Error - malloc didn't work");
 		return NULL;
 	}
-	
+
 	lock->readers = 0;
-	
+
 	lock->h_mutex = CreateMutexA(
 		NULL,              // default security attributes
 		FALSE,             // initially not owned
 		NULL);             // unnamed mutex
 	if (NULL == lock->h_mutex)
-	{ 
+	{
 		printf("InitializeLock: CreateMutexA on h_mutex didn't work");
 		free(lock);
 		return NULL;
 	}
-	
+
 	lock->h_room_empty = CreateSemaphoreA(
 		NULL,           // default security attributes
 		1,  // initial count
@@ -53,7 +41,7 @@ Lock* InitializeLock()
 		free(lock);
 		return NULL;
 	}
-	
+
 	lock->h_turnstile = CreateMutexA(
 		NULL,              // default security attributes
 		FALSE,             // initially not owned
@@ -72,26 +60,26 @@ Lock* InitializeLock()
 		free(lock);
 		return NULL;
 	}
-	
+
 	return lock;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
-//need to address the operation for single thread
-
 int read_lock(Lock* lock)
 {
 	int wait_code = 0;
+	int ret_val = 0;
+
 	wait_code = WaitForSingleObject(lock->h_turnstile, WAIT_TIME); //turnstile.wait()
 	if (WAIT_OBJECT_0 != wait_code)
 	{
 		printf("read_lock: WaitForSingleObject on h_turnstile didn't work");
 		goto Close_Handles;
 	}
-	
-	ReleaseMutex(lock->h_turnstile); //turnstile.signal()
-	if (0 == ReleaseMutex(lock->h_turnstile)) 
+
+	ret_val = ReleaseMutex(lock->h_turnstile); //turnstile.signal()
+	if (0 == ret_val)
 	{
 		printf("read_lock: ReleaseMutex on h_turnstile didn't work");
 		goto Close_Handles;;
@@ -116,8 +104,8 @@ int read_lock(Lock* lock)
 		}
 	}
 
-	ReleaseMutex(lock->h_mutex); // mutex.signal()
-	if (0 == ReleaseMutex(lock->h_mutex))
+	ret_val = ReleaseMutex(lock->h_mutex); // mutex.signal()
+	if (0 == ret_val)
 	{
 		printf("read_lock: ReleaseMutex error on h_mutex didn't work");
 		goto Close_Handles;
@@ -155,11 +143,10 @@ Close_Handles:
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
-//need to address the operation for single thread
-
 int read_release(Lock* lock)
 {
 	int wait_code = 0;
+	int ret_val = 0;
 	wait_code = WaitForSingleObject(lock->h_mutex, WAIT_TIME); //mutex.wait()
 	if (WAIT_OBJECT_0 != wait_code)
 	{
@@ -170,16 +157,16 @@ int read_release(Lock* lock)
 
 	if (0 == lock->readers)
 	{
-		ReleaseSemaphore(lock->h_room_empty, 1, NULL); //room_empty.signal()
-		if (0 == ReleaseSemaphore(lock->h_room_empty, 1, NULL))
+		ret_val = ReleaseSemaphore(lock->h_room_empty, 1, NULL); //room_empty.signal()
+		if (0 == ret_val)
 		{
 			printf("read_release: ReleaseSemaphore on h_room_empty didn't work");
 			goto Close_Handles;
 		}
 	}
 
-	ReleaseMutex(lock->h_mutex); // mutex.signal()
-	if (0 == ReleaseMutex(lock->h_mutex))
+	ret_val = ReleaseMutex(lock->h_mutex); // mutex.signal()
+	if (0 == ret_val)
 	{
 		printf("read_release: ReleaseMutex error on h_mutex didn't work");
 		goto Close_Handles;
@@ -214,8 +201,6 @@ Close_Handles:
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
-
-//need to address the operation for single thread and read while write.
 
 int write_lock(Lock* lock)
 {
@@ -264,19 +249,18 @@ Close_Handles:
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
-//need to address the operation for single thread
-
 int write_release(Lock* lock)
 {
-	ReleaseMutex(lock->h_turnstile); //turnstile.signal()
-	if (0 == ReleaseMutex(lock->h_turnstile))
+	int ret_val = 0;
+	ret_val = ReleaseMutex(lock->h_turnstile); //turnstile.signal()
+	if (0 == ret_val)
 	{
 		printf("write_release: ReleaseMutex on turnstile didn't work");
 		goto Close_Handles;;
 	}
 
-	ReleaseSemaphore(lock->h_room_empty, 1, NULL); //room_empty.signal()
-	if (0 == ReleaseSemaphore(lock->h_room_empty, 1, NULL))
+	ret_val = ReleaseSemaphore(lock->h_room_empty, 1, NULL); //room_empty.signal()
+	if (0 == ret_val)
 	{
 		printf("write_release: ReleaseSemaphore on room_empty didn't work");
 		goto Close_Handles;
@@ -320,7 +304,7 @@ void DestroyLock(Lock* lock)
 		}
 		lock->h_mutex = NULL;
 	}
-	
+
 	if (NULL != lock->h_room_empty)
 	{
 		if (0 == CloseHandle(lock->h_room_empty))
@@ -329,7 +313,7 @@ void DestroyLock(Lock* lock)
 		}
 		lock->h_room_empty = NULL;
 	}
-	
+
 	if (NULL != lock->h_turnstile)
 	{
 		if (0 == CloseHandle(lock->h_turnstile))

@@ -36,10 +36,8 @@ HANDLE create_file_for_read(char* file_name)
 }
 
 
-
-
 int initialize_main_thread(int argc, char** argv, char mission_file_name[_MAX_PATH],
-	char priority_file_name[_MAX_PATH], HANDLE* p_h_priority_file, int* p_number_of_missions)
+	char priority_file_name[_MAX_PATH], HANDLE* p_h_priority_file, int* p_number_of_missions, int* p_number_of_threads)
 {
 	if (argc != EXPECTED_ARGC)
 	{
@@ -58,7 +56,6 @@ int initialize_main_thread(int argc, char** argv, char mission_file_name[_MAX_PA
 	}
 
 
-
 	ret_val = snprintf(priority_file_name, _MAX_PATH, "%s", argv[PRIORITY_FILE_OFFSET]);
 	if (0 == ret_val)
 	{
@@ -67,10 +64,23 @@ int initialize_main_thread(int argc, char** argv, char mission_file_name[_MAX_PA
 	}
 
 
+	*p_number_of_missions = (int)strtol(argv[NUMBER_OF_LINES_OFFSET], NULL, DECIMAL_BASE);
+	if (*p_number_of_missions == 0)
+	{
+		printf("ERROR in main - strtol for number_of_missions has failed.\n");
+		return FAILURE;
+	}
+
+
+	*p_number_of_threads = (int)strtol(argv[NUMBER_OF_THREADS_OFFSET], NULL, DECIMAL_BASE);
+	if (*p_number_of_threads == 0)
+	{
+		printf("ERROR in main - strtol for number_of_threads has failed.\n");
+		return FAILURE;
+	}
+
 
 	*p_h_priority_file = create_file_for_read(priority_file_name);
-
-	//check if function failed
 	if (NULL == *p_h_priority_file)
 	{
 		printf("create_file_for_read returned NULL pointer.\n"
@@ -78,21 +88,29 @@ int initialize_main_thread(int argc, char** argv, char mission_file_name[_MAX_PA
 		return FAILURE;
 	}
 
-
-	*p_number_of_missions = (int)strtol(argv[NUMBER_OF_LINES_OFFSET], NULL, DECIMAL_BASE);
-	if (*p_number_of_missions == 0)
-	{
-		printf("ERROR in main - strtol has failed.\n");
-		if (0 == CloseHandle(*p_h_priority_file))
-		{
-			printf("close_handle failed.\n");
-		}
-		return FAILURE;
-	}
 	return SUCCESS;
 }
 
+/*
+Data* initialize_threads_data(int number_of_threads, int number_of_missions, char mission_file_name[_MAX_PATH],
+	Queue* q, Lock* lock, HANDLE h_q_mutex)
+{
+	Data* p_threads_data = NULL;
+	p_threads_data = (Data*)malloc(number_of_threads * sizeof(Data));
+	if (NULL == p_threads_data)
+	{
+		printf("initialize_threads_data: memory allocation failure.\n");
+		return NULL;
+	}
 
+	for (int i = 0; i < number_of_threads; i++)
+	{
+		*p_threads_data = { .q = q,.lock = lock, .h_q_mutex = h_q_mutex,
+		.number_of_missions = number_of_missions, .mission_file_name = NULL };
+	}
+}
+
+*/
 
 /* HANDLE open_existing_file_for_write: a wrapper for CreateFileA.
 
@@ -140,21 +158,6 @@ HANDLE open_file_for_read_and_write(LPCSTR file_name)
 	return h_file;
 }
 
-
-
-
-/* int get_end_index:
-* Description - This function finds the end positions in the file for a specific thread.
-
-* Parameters:
-* HANDLE h_file - handle to a file with GENERIC_READ permission.
-* int lines_for_thread - number of lines from the file for each thread to operate on.
-* int start_index - the start position of the thread.
-
-* Return Value:
-* on success - returns the end position of a thread (a positive integer).
-* on failure - returns FAILURE (integer value -1),
-*/
 
 
 int set_mission_index(HANDLE h_priority_file, Element* p_element, int line_index)
@@ -221,8 +224,6 @@ int set_mission_index(HANDLE h_priority_file, Element* p_element, int line_index
 	p_element->index = index;
 	return count_charcters_in_line;
 }
-
-
 
 
 int get_mission(HANDLE h_mission_file)
@@ -319,7 +320,6 @@ Queue* create_queue(HANDLE h_priority_file, int number_of_missions)
 
 
 
-
 /* HANDLE create_thread_simple:
 * Description - creates a thread using CreateThread.
 
@@ -360,38 +360,42 @@ HANDLE create_thread_simple(LPTHREAD_START_ROUTINE p_start_routine,
 }
 
 
-
-int find_prime_factors(int* Primes, int allocation_size, int n)
+int* find_prime_factors(int* p_primes, int *allocation_size, int n, int* p_number_of_primes)
 {
-	//get number of 2 needed.
+	
 	int index = 0;
 	int* temp = NULL;
+	*p_number_of_primes = 0;
 
+
+	//get number of 2 needed.
 	if (0 == n)
 	{
 		printf("find_prime_factors: invalid input.\n");
-		return FAILURE;
+		return NULL;
 	}
 
 	while ((n % 2) == 0)
 	{
-		if (index > allocation_size - 1)
+		if (index >= *allocation_size)
 		{
-			allocation_size = allocation_size * 2;
+			*allocation_size = (index + 1) * 2;
 
-			temp = (int*)realloc(Primes, allocation_size * sizeof(int));
+			temp = (int*)realloc(p_primes, *allocation_size * sizeof(int));
 			if (NULL == temp)
 			{
 				printf("Memory Error, Couldn't execute realloc. ABORT.");
-				free(Primes);
-				return FAILURE;
+				free(p_primes);
+				return NULL;
 			}
+			p_primes = temp;
 		}
 
 		n = n / 2;
-		Primes[index] = 2;
-		printf("Primes[%d] = %d\n", index, Primes[index]);
-
+		p_primes[index] = 2;
+		
+		printf("Primes[%d] = %d\n", index, p_primes[index]);
+		*p_number_of_primes += 1;
 		index += 1;
 	}
 
@@ -402,22 +406,24 @@ int find_prime_factors(int* Primes, int allocation_size, int n)
 	{
 		while ((n % i) == 0)
 		{
-			if (index > allocation_size - 1)
+			if (index >= *allocation_size)
 			{
-				allocation_size = allocation_size * 2;
+				*allocation_size = (index + 1) * 2;
 
-				temp = (int*)realloc(Primes, allocation_size * sizeof(int));
+				temp = (int*)realloc(p_primes, *allocation_size * sizeof(int));
 				if (NULL == temp)
 				{
 					printf("Memory Error, Couldn't execute realloc. ABORT.");
-					free(Primes);
-					return FAILURE;
+					free(p_primes);
+					return NULL;
 				}
+				p_primes = temp;
 			}
 
 			n = n / i;
-			Primes[index] = i;
-			printf("Primes[%d] = %d\n", index, Primes[index]);
+			p_primes[index] = i;
+			printf("Primes[%d] = %d\n", index, p_primes[index]);
+			*p_number_of_primes += 1;
 			index += 1;
 		}
 		i += 2;
@@ -425,36 +431,30 @@ int find_prime_factors(int* Primes, int allocation_size, int n)
 
 	if (n > 2)
 	{
-		allocation_size = index + 1;
-		temp = (int*)realloc(Primes, allocation_size * sizeof(int));
-		if (NULL == temp)
+		if (index >= *allocation_size)
 		{
-			printf("Memory Error, Couldn't execute realloc. ABORT.");
-			free(Primes);
-			return FAILURE;
+			*allocation_size = (index + 1) * 2;
+			temp = (int*)realloc(p_primes, *allocation_size * sizeof(int));
+			if (NULL == temp)
+			{
+				printf("Memory Error, Couldn't execute realloc. ABORT.");
+				free(p_primes);
+				return NULL;
+			}
+			p_primes = temp;
 		}
 
-		Primes[index] = n;
-		printf("Primes[%d] = %d\n", index, Primes[index]);
+		p_primes[index] = n;
+		*p_number_of_primes += 1;
+		printf("Primes[%d] = %d\n", index, p_primes[index]);
 
 	}
-	else if (allocation_size > index)
-	{
-		allocation_size = index;
-		temp = (int*)realloc(Primes, allocation_size * sizeof(int));
-		if (NULL == temp)
-		{
-			printf("Memory Error, Couldn't execute realloc. ABORT.");
-			free(Primes);
-			return FAILURE;
-		}
-	}
 
-	return allocation_size;
+	return p_primes;
 }
 
 
-int set_print_format(char* str, int allocation_size, int mission, int* p_primes, int number_of_primes)
+int set_print_format(char* str, int allocation_size, int mission, int const* p_primes, int number_of_primes)
 {
 	int bytes_written = 0;
 
@@ -487,10 +487,3 @@ int set_print_format(char* str, int allocation_size, int mission, int* p_primes,
 
 	return SUCCESS;
 }
-
-
-
-
-
-
-

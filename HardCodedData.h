@@ -1,5 +1,6 @@
 #ifndef __HARD_CODED_DATA_H__
 #define __HARD_CODED_DATA_H__
+#include <Windows.h>
 
 #define EXPECTED_ARGC 5
 #define FAILURE -1
@@ -24,7 +25,7 @@
 #define FIXED_BUFFER_SIZE 40
 
 
-#define WAIT_TIME 5000
+#define WAIT_TIME 500000
 
 
 typedef struct Element
@@ -41,13 +42,24 @@ typedef struct Queue
 } Queue;
 
 
+typedef struct Lock
+{
+	int readers;
+	HANDLE h_mutex;
+	HANDLE h_room_empty;
+	HANDLE h_turnstile;
+
+} Lock;
+
+
 typedef struct Data
 {
 	Queue* q;
+	Lock* lock;
+	HANDLE h_q_mutex;
 	int number_of_missions;
 	char mission_file_name[_MAX_PATH];
 } Data;
-
 
 
 #endif //__HARD_CODED_DATA_H__
