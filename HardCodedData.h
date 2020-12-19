@@ -57,7 +57,6 @@ typedef struct Data
 	Queue* q;
 	Lock* lock;
 	HANDLE h_q_mutex;
-	int number_of_missions;
 	char mission_file_name[_MAX_PATH];
 } Data;
 

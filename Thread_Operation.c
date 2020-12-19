@@ -81,6 +81,11 @@ DWORD WINAPI mission_thread(LPVOID lpParam)
 			goto Resource_Handling;
 		}
 
+		if (Empty(p_thread_data->q))
+		{
+			break;
+		}
+
 		p_element = Top(p_thread_data->q);
 		if (NULL == p_element)
 		{

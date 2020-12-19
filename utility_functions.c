@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include <windows.h>
 #include <math.h>
 
@@ -17,7 +18,7 @@
 * on success - a handle to a file with GENERIC_READ permission
 * on failure - NULL
 */
-HANDLE create_file_for_read(char* file_name)
+HANDLE create_file_for_read(LPCSTR file_name)
 {
 	if (NULL == file_name)
 	{
@@ -91,8 +92,8 @@ int initialize_main_thread(int argc, char** argv, char mission_file_name[_MAX_PA
 	return SUCCESS;
 }
 
-/*
-Data* initialize_threads_data(int number_of_threads, int number_of_missions, char mission_file_name[_MAX_PATH],
+
+Data* initialize_threads_data(int number_of_threads, char mission_file_name[_MAX_PATH],
 	Queue* q, Lock* lock, HANDLE h_q_mutex)
 {
 	Data* p_threads_data = NULL;
@@ -103,14 +104,24 @@ Data* initialize_threads_data(int number_of_threads, int number_of_missions, cha
 		return NULL;
 	}
 
+	int bytes_written = 0;
 	for (int i = 0; i < number_of_threads; i++)
 	{
-		*p_threads_data = { .q = q,.lock = lock, .h_q_mutex = h_q_mutex,
-		.number_of_missions = number_of_missions, .mission_file_name = NULL };
+		p_threads_data[i].h_q_mutex = h_q_mutex;
+		p_threads_data[i].lock = lock;
+		
+		p_threads_data[i].q = q;
+		bytes_written = snprintf(p_threads_data[i].mission_file_name, _MAX_PATH, "%s", mission_file_name);
+		if (bytes_written <= 0 || bytes_written > _MAX_PATH)
+		{
+			printf("initialize_threads_data: snprintf failed.\n");
+			free(p_threads_data);
+			return NULL;
+		}
 	}
+	return p_threads_data;
 }
 
-*/
 
 /* HANDLE open_existing_file_for_write: a wrapper for CreateFileA.
 
@@ -477,7 +488,7 @@ int set_print_format(char* str, int allocation_size, int mission, int const* p_p
 			return FAILURE;
 		}
 	}
-	bytes_written = snprintf(str, allocation_size, "%s %d\n", str, p_primes[index]);
+	bytes_written = snprintf(str, allocation_size, "%s %d\r\n", str, p_primes[index]);
 
 	if (bytes_written < 0)
 	{
