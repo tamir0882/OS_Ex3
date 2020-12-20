@@ -7,7 +7,10 @@
 // For the implementation of the queue we used a code from the website
 //https://www.geeksforgeeks.org/queue-linked-list-implementation/
 
-
+//Description - this function initialize space in memory for a new queue.
+//Parameters - No input parameters. The output parameter is a pointer to
+//the new initialized queue.
+//Returns - pointer to a struct of type Queue.
 
 Queue* InitializeQueue()
 {
@@ -22,6 +25,12 @@ Queue* InitializeQueue()
 	return new_q;
 }
 
+//Description - this function checks if the given queue has elements and 
+//returns False or True if is empty.
+//Parameters - The input parameter is a pointer to a queue of type struct Queue. 
+//The output paramater is a boolian type indacation of empty queue.
+//Returns - Boolian value.
+
 bool Empty(Queue* q)
 {
 	if (q->front == NULL)
@@ -34,21 +43,32 @@ bool Empty(Queue* q)
 	}
 }
 
+//Description - this function finds the first element in queue id not empty and returns it.
+//Parameters - The input parameter is a pointer to a queue of type struct Queue. 
+//The output paramater is a pointer to an element of type Element.
+//Returns - an element of type Element.
+
 Element* Top(Queue* q)
 {
 	if (Empty(q))
 	{
-		printf("Queue is empty.");
+		printf("Queue is empty.\n");
 		return NULL;
 	}
 	return q->front;
 }
 
+//Description - this function finds the first element in queue, takes it out and 
+//sets the one after it to be first.
+//Parameters - The input parameter is a pointer to a queue of type struct Queue. 
+//The output paramater is a pointer to an element of type Element.
+//Returns - an element of type Element.
+
 void Pop(Queue* q)
 {
 	if (Empty(q))
 	{
-		printf("Queue is empty, nothing to pop");
+		printf("Queue is empty, nothing to pop.\n");
 		return;
 	}
 
