@@ -14,6 +14,6 @@ int write_lock(Lock* lock);
 
 int write_release(Lock* lock);
 
-void DestroyLock(Lock* lock);
+int DestroyLock(Lock* lock);
 
 #endif //__LOCK_H__

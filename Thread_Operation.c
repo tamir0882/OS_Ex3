@@ -72,7 +72,7 @@ DWORD WINAPI mission_thread(LPVOID lpParam)
 			printf("Thread operation failed - read_lock failed.\n");
 			goto Resource_Handling;
 		}
-		
+
 		wait_code = WaitForSingleObject(p_thread_data->h_q_mutex, WAIT_TIME);
 		if (WAIT_OBJECT_0 != wait_code)
 		{
@@ -159,7 +159,7 @@ DWORD WINAPI mission_thread(LPVOID lpParam)
 			exit_code = FAILURE;
 			goto Resource_Handling;
 		}
-		output_str = temp; 
+		output_str = temp;
 
 		ret_val = set_print_format(output_str, output_str_allocation_size, mission, p_primes, number_of_primes);
 		if (FAILURE == ret_val)
@@ -198,7 +198,7 @@ DWORD WINAPI mission_thread(LPVOID lpParam)
 			goto Resource_Handling;
 		}
 
-		
+
 		exit_code = write_release(p_thread_data->lock);
 		if (FAILURE == exit_code)
 		{
@@ -208,7 +208,7 @@ DWORD WINAPI mission_thread(LPVOID lpParam)
 		/*****************************************/
 
 	}
-	
+
 
 Resource_Handling:
 	if (NULL != output_str)

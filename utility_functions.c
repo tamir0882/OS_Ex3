@@ -109,7 +109,7 @@ Data* initialize_threads_data(int number_of_threads, char mission_file_name[_MAX
 	{
 		p_threads_data->h_q_mutex = h_q_mutex;
 		p_threads_data->lock = lock;
-		
+
 		p_threads_data->q = q;
 		bytes_written = snprintf(p_threads_data->mission_file_name, _MAX_PATH, "%s", mission_file_name);
 		if (bytes_written <= 0 || bytes_written > _MAX_PATH)
@@ -192,7 +192,7 @@ int set_mission_index(HANDLE h_priority_file, Element* p_element, int line_index
 	}
 
 	char buffer = 0;
-	
+
 
 	int count_charcters_in_line = 0;
 	int index = 0;
@@ -222,7 +222,7 @@ int set_mission_index(HANDLE h_priority_file, Element* p_element, int line_index
 			index = index * 10;
 			index += (int)(strtol(&buffer, NULL, DECIMAL_BASE));
 		}
-		
+
 		if (0 == index)
 		{
 			if (buffer != '0')
@@ -373,9 +373,9 @@ HANDLE create_thread_simple(LPTHREAD_START_ROUTINE p_start_routine,
 }
 
 
-int* find_prime_factors(int* p_primes, int *allocation_size, int n, int* p_number_of_primes)
+int* find_prime_factors(int* p_primes, int* allocation_size, int n, int* p_number_of_primes)
 {
-	
+
 	int index = 0;
 	int* temp = NULL;
 	*p_number_of_primes = 0;
@@ -406,7 +406,7 @@ int* find_prime_factors(int* p_primes, int *allocation_size, int n, int* p_numbe
 
 		n = n / 2;
 		p_primes[index] = 2;
-		
+
 		printf("Primes[%d] = %d\n", index, p_primes[index]);
 		*p_number_of_primes += 1;
 		index += 1;

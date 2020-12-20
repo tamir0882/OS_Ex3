@@ -11,7 +11,7 @@
 
 
 int main(int argc, char** argv)
-{	
+{
 	int exit_code = SUCCESS;
 	int ret_val = 0;
 	int wait_code = 0;
@@ -21,13 +21,13 @@ int main(int argc, char** argv)
 
 	char mission_file_name[_MAX_PATH] = { 0 };
 	char priority_file_name[_MAX_PATH] = { 0 };
-	
+
 	HANDLE h_priority_file = NULL;
 
 	HANDLE h_q_mutex = NULL;
 	Queue* q = NULL;
 	Lock* lock = NULL;
-	
+
 	Data* p_threads_data = NULL;
 	DWORD thread_ids[MAXIMUM_WAIT_OBJECTS] = { 0 };
 	HANDLE p_thread_handles[MAXIMUM_WAIT_OBJECTS] = { 0 };
@@ -49,7 +49,7 @@ int main(int argc, char** argv)
 		goto Resource_Handling;
 	}
 
-	
+
 	lock = InitializeLock();
 	if (NULL == lock)
 	{
@@ -69,10 +69,10 @@ int main(int argc, char** argv)
 
 
 	p_threads_data = initialize_threads_data(number_of_threads, mission_file_name, q, lock, h_q_mutex);
-	
+
 	for (int i = 0; i < number_of_threads; i++)
 	{
-		p_thread_handles[i]= create_thread_simple(mission_thread, thread_ids, p_threads_data);
+		p_thread_handles[i] = create_thread_simple(mission_thread, thread_ids, p_threads_data);
 		if (NULL == p_thread_handles[i])
 		{
 			printf("main: create_thread_simple failed.\n");
@@ -140,7 +140,7 @@ Resource_Handling:
 	}
 
 
-	if (h_priority_file != NULL) 
+	if (h_priority_file != NULL)
 	{
 		if (0 == CloseHandle(h_priority_file))
 		{
