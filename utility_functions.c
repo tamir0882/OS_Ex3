@@ -114,14 +114,16 @@ int initialize_main_thread(int argc, char** argv, char mission_file_name[_MAX_PA
 * char mission_file_name[_MAX_PATH] - path to mission file.
 * Queue* q - pointer to a queue.
 * Lock* lock - pointer to a lock.
-* HANDLE h_q_mutex - handle to a mutex for synchronization of the queue.
+* HANDLE h_resource_mutex - handle to a mutex for synchronization of the queue.
+* HANDLE h_priority_file - handle to the priority file.
+* int number_of_missions - number of missions given by the user.
 
 * Return value:
 * on success - pointer to an array of type Data.
 * on failure - NULL.
 */
 Data* initialize_threads_data(int number_of_threads, char mission_file_name[_MAX_PATH],
-	Queue* q, Lock* lock, HANDLE h_q_mutex)
+	Queue* q, Lock* lock, HANDLE h_q_mutex, HANDLE h_priority_file, int number_of_missions)
 {
 	Data* p_threads_data = NULL;
 	p_threads_data = (Data*)malloc(number_of_threads * sizeof(Data));
@@ -134,10 +136,14 @@ Data* initialize_threads_data(int number_of_threads, char mission_file_name[_MAX
 	int bytes_written = 0;
 	for (int i = 0; i < number_of_threads; i++)
 	{
-		p_threads_data->h_q_mutex = h_q_mutex;
+		p_threads_data->h_priority_file = h_priority_file;
+		p_threads_data->h_resource_mutex = h_q_mutex;
 		p_threads_data->lock = lock;
-
 		p_threads_data->q = q;
+		p_threads_data->number_of_missions = number_of_missions;
+		p_threads_data->next_line_index = 0;
+		p_threads_data->next_line_offset = 0;
+
 		bytes_written = snprintf(p_threads_data->mission_file_name, _MAX_PATH, "%s", mission_file_name);
 		if (bytes_written <= 0 || bytes_written > _MAX_PATH)
 		{
@@ -323,7 +329,7 @@ int get_mission(HANDLE h_mission_file)
 * on success - a pointer tp a queue structure.
 * on failure - NULL
 */
-Queue* create_queue(HANDLE h_priority_file, int number_of_missions)
+Queue* create_priority_queue(HANDLE h_priority_file, int number_of_missions)
 {
 	Queue* q = NULL;
 	q = InitializeQueue();
@@ -349,6 +355,13 @@ Queue* create_queue(HANDLE h_priority_file, int number_of_missions)
 	for (int i = 0; i < number_of_missions; i++)
 	{
 		*p_p_elements = (Element*)malloc(sizeof(Element));
+		if (NULL == *p_p_elements)
+		{
+			printf("create_queue: Memory allocation failure.\n");
+			free(p_p_elements);
+			DestroyQueue(q);
+			return NULL;
+		}
 
 		next_line_offset = set_mission_index(h_priority_file, *p_p_elements, next_line_index);
 		if (FAILURE == next_line_offset)

@@ -26,7 +26,7 @@
 
 #define INITIAL_SEMAPHORE_COUNT 1
 
-#define WAIT_TIME 5000
+#define WAIT_TIME 5000000
 
 
 typedef struct Element
@@ -57,8 +57,12 @@ typedef struct Data
 {
 	Queue* q;
 	Lock* lock;
-	HANDLE h_q_mutex;
+	HANDLE h_resource_mutex;
+	HANDLE h_priority_file;
 	char mission_file_name[_MAX_PATH];
+	int number_of_missions;
+	int next_line_offset;
+	int next_line_index;
 } Data;
 
 

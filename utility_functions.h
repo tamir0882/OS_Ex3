@@ -16,10 +16,10 @@ HANDLE create_thread_simple(LPTHREAD_START_ROUTINE p_start_routine,
 
 
 Data* initialize_threads_data(int number_of_threads, char mission_file_name[_MAX_PATH],
-	Queue* q, Lock* lock, HANDLE h_q_mutex);
+	Queue* q, Lock* lock, HANDLE h_q_mutex, HANDLE h_priority_file, int number_of_missions);
 
 
-Queue* create_queue(HANDLE h_priority_file, int number_of_missions);
+Queue* create_priority_queue(HANDLE h_priority_file, int number_of_missions);
 
 
 int set_mission_index(HANDLE h_priority_file, Element* p_element, int line_index);

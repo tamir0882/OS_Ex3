@@ -32,7 +32,7 @@ int main(int argc, char** argv)
 	DWORD thread_ids[MAXIMUM_WAIT_OBJECTS] = { 0 };
 	HANDLE p_thread_handles[MAXIMUM_WAIT_OBJECTS] = { 0 };
 
-
+	//initialize important handles and variables for the program.
 	exit_code = initialize_main_thread(argc, argv, mission_file_name, priority_file_name, &h_priority_file, &number_of_missions, &number_of_threads);
 	if (FAILURE == exit_code)
 	{
@@ -41,10 +41,10 @@ int main(int argc, char** argv)
 	}
 
 
-	q = create_queue(h_priority_file, number_of_missions);
+	q = InitializeQueue();
 	if (NULL == q)
 	{
-		printf("main: create_queue failed.\n");
+		printf("main: initialize q failed.\n");
 		exit_code = FAILURE;
 		goto Resource_Handling;
 	}
@@ -68,7 +68,7 @@ int main(int argc, char** argv)
 	}
 
 
-	p_threads_data = initialize_threads_data(number_of_threads, mission_file_name, q, lock, h_q_mutex);
+	p_threads_data = initialize_threads_data(number_of_threads, mission_file_name, q, lock, h_q_mutex, h_priority_file, number_of_missions);
 
 	for (int i = 0; i < number_of_threads; i++)
 	{
