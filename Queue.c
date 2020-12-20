@@ -61,8 +61,8 @@ Element* Top(Queue* q)
 //Description - this function finds the first element in queue, takes it out and 
 //sets the one after it to be first.
 //Parameters - The input parameter is a pointer to a queue of type struct Queue. 
-//The output paramater is a pointer to an element of type Element.
-//Returns - an element of type Element.
+//There is no output paramater.
+//Returns - The function has no return value.
 
 void Pop(Queue* q)
 {
@@ -83,6 +83,12 @@ void Pop(Queue* q)
 	}
 }
 
+//Description - this function clear the given queue from its elements and 
+//frees its resources when the queue is empty.
+//Parameters - The input parameter is a pointer to a queue of type struct Queue. 
+//There is no output paramater.
+//Returns - The function has no return value.
+
 void DestroyQueue(Queue* q)
 {
 	while (!Empty(q))
@@ -92,6 +98,13 @@ void DestroyQueue(Queue* q)
 	free(q);
 	q = NULL;
 }
+
+//Description - this function puts the given element in the end of the given queue.
+//if the queue is empty the new element is also in the front of the queue.
+//Parameters - The input parameters are a pointer to a queue of type struct Queue, 
+//and a pointer to an element of type struct Element. 
+//There is no output paramater.
+//Returns - The function has no return value.
 
 void Push(Queue* q, Element* p_element)
 {
