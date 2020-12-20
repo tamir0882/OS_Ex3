@@ -20,7 +20,7 @@ DWORD WINAPI mission_thread(LPVOID lpParam)
 	int wait_code = 0;
 
 	int mission = 0;
-
+	
 	char* temp = NULL;
 	char* output_str = NULL;
 	int output_str_allocation_size = FIXED_BUFFER_SIZE;
@@ -38,7 +38,6 @@ DWORD WINAPI mission_thread(LPVOID lpParam)
 		printf("Thread operation failed - open_file_for_read_and_write failed.\n");
 		return FAILURE;
 	}
-
 
 
 	p_primes = (int*)malloc(p_primes_allocation_size * sizeof(int));
@@ -59,7 +58,6 @@ DWORD WINAPI mission_thread(LPVOID lpParam)
 	}
 
 
-
 	while (!Empty(p_thread_data->q))
 	{
 
@@ -78,11 +76,30 @@ DWORD WINAPI mission_thread(LPVOID lpParam)
 		{
 			printf("Thread operation failed - h_q_mutex.wait() failed.\n");
 			exit_code = FAILURE;
+
+			ret_val = ReleaseMutex(p_thread_data->h_q_mutex);
+			if (0 == ret_val)
+			{
+				printf("Thread operation failed - h_q_mutex.signal() failed.\n");
+			}
 			goto Resource_Handling;
 		}
 
 		if (Empty(p_thread_data->q))
 		{
+			ret_val = ReleaseMutex(p_thread_data->h_q_mutex);
+			if (0 == ret_val)
+			{
+				exit_code = FAILURE;
+				printf("Thread operation failed - h_q_mutex.signal() failed.\n");
+			}
+			
+			ret_val = read_release(p_thread_data->lock);
+			if (FAILURE == ret_val)
+			{
+				exit_code = FAILURE;
+				printf("Thread opertaion failed - get_mission failed.\n");
+			}
 			break;
 		}
 
@@ -91,6 +108,19 @@ DWORD WINAPI mission_thread(LPVOID lpParam)
 		{
 			printf("Thread operation failed - Top returned NULL pointer.\n");
 			exit_code = FAILURE;
+
+			ret_val = ReleaseMutex(p_thread_data->h_q_mutex);
+			if (0 == ret_val)
+			{
+				printf("Thread operation failed - h_q_mutex.signal() failed.\n");
+			}
+
+			ret_val = read_release(p_thread_data->lock);
+			if (FAILURE == ret_val)
+			{
+				printf("Thread opertaion failed - get_mission failed.\n");
+			}
+
 			goto Resource_Handling;
 		}
 
@@ -99,6 +129,18 @@ DWORD WINAPI mission_thread(LPVOID lpParam)
 		{
 			printf("Thread operation failed - SetFilePointer failed.\n");
 			exit_code = FAILURE;
+
+			ret_val = ReleaseMutex(p_thread_data->h_q_mutex);
+			if (0 == ret_val)
+			{
+				printf("Thread operation failed - h_q_mutex.signal() failed.\n");
+			}
+
+			ret_val = read_release(p_thread_data->lock);
+			if (FAILURE == ret_val)
+			{
+				printf("Thread opertaion failed - get_mission failed.\n");
+			}
 			goto Resource_Handling;
 		}
 
@@ -109,6 +151,11 @@ DWORD WINAPI mission_thread(LPVOID lpParam)
 		{
 			printf("Thread operation failed - h_q_mutex.signal() failed.\n");
 			exit_code = FAILURE;
+			ret_val = read_release(p_thread_data->lock);
+			if (FAILURE == ret_val)
+			{
+				printf("Thread opertaion failed - get_mission failed.\n");
+			}
 			goto Resource_Handling;
 		}
 
@@ -119,6 +166,11 @@ DWORD WINAPI mission_thread(LPVOID lpParam)
 		if (FAILURE == mission)
 		{
 			printf("Thread opertaion failed - get_mission failed.\n");
+			ret_val = read_release(p_thread_data->lock);
+			if (FAILURE == ret_val)
+			{
+				printf("Thread opertaion failed - get_mission failed.\n");
+			}
 			exit_code = FAILURE;
 			goto Resource_Handling;
 		}

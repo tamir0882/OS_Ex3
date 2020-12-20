@@ -1,5 +1,4 @@
 
-
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -36,7 +35,21 @@ HANDLE create_file_for_read(LPCSTR file_name)
 	return h_file;
 }
 
+/* int initialize_main_thread: 
 
+* Parameters:
+* int argc - number of args given to main thread.
+* char** argv - an array of size argc, of strings. 
+* char mission_file_name[_MAX_PATH] - a string of size_MAX_PATH.
+* char priority_file_name[_MAX_PATH] - a string of size_MAX_PATH.
+* HANDLE* p_h_priority_file - a handle to file.
+* int* p_number_of_missions - pointer to an integer.
+* int* p_number_of_threads - pointer to an integer.
+
+* Return value:
+* on success - returns SUCCESS(0)
+* on failure - returns FAILURE(-1)
+*/
 int initialize_main_thread(int argc, char** argv, char mission_file_name[_MAX_PATH],
 	char priority_file_name[_MAX_PATH], HANDLE* p_h_priority_file, int* p_number_of_missions, int* p_number_of_threads)
 {
@@ -93,6 +106,20 @@ int initialize_main_thread(int argc, char** argv, char mission_file_name[_MAX_PA
 }
 
 
+/* Data* initialize_threads_data:
+* this function intializes data neede for thread operation.
+
+* Parameters:
+* int number_of_threads - number of threads to initialize data for.
+* char mission_file_name[_MAX_PATH] - path to mission file.
+* Queue* q - pointer to a queue.
+* Lock* lock - pointer to a lock.
+* HANDLE h_q_mutex - handle to a mutex for synchronization of the queue.
+
+* Return value:
+* on success - pointer to an array of type Data.
+* on failure - NULL.
+*/
 Data* initialize_threads_data(int number_of_threads, char mission_file_name[_MAX_PATH],
 	Queue* q, Lock* lock, HANDLE h_q_mutex)
 {
@@ -125,35 +152,15 @@ Data* initialize_threads_data(int number_of_threads, char mission_file_name[_MAX
 }
 
 
-/* HANDLE open_existing_file_for_write: a wrapper for CreateFileA.
+/* HANDLE open_file_for_read_and_write: a wrapper for CreateFileA.
 
 * Parameters:
-* LPCTR file_name - path for a file to create for writing.
+* LPCTR file_name - path for a file to create for reading and writing to simultaneously.
 
 * Return value:
 * on success - a handle to a file with GENERIC_WRITE permission
 * on failure - NULL
 */
-HANDLE open_existing_file_for_write(LPCSTR file_name)
-{
-	if (NULL == file_name)
-	{
-		printf("ARG ERROR - NULL pointer was given. ABORT.\n");
-		return NULL;
-	}
-
-	HANDLE h_file = CreateFileA(file_name, GENERIC_WRITE, FILE_SHARE_WRITE, NULL, OPEN_EXISTING,
-		FILE_ATTRIBUTE_NORMAL, NULL);
-	if (ERROR_FILE_NOT_FOUND == GetLastError() || INVALID_HANDLE_VALUE == h_file)
-	{
-		printf("ERROR - could not open file. ABORT\n");
-		return NULL;
-	}
-	return h_file;
-}
-
-
-
 HANDLE open_file_for_read_and_write(LPCSTR file_name)
 {
 	if (NULL == file_name)
@@ -172,7 +179,18 @@ HANDLE open_file_for_read_and_write(LPCSTR file_name)
 }
 
 
+/* int set_mission_index:
+* this function sets p_element->index according to the appropriate text in the priority file.
 
+* Parameters:
+* HANDLE h_priority_file - handle to a file created with read permission.
+* Element* p_element - pointer to an Element.  
+* int line_index - an integer representing the point in the file to start read from. 
+
+* Return value:
+* on success - number of character read from the file.
+* on failure - returns FAILURE(-1).
+*/
 int set_mission_index(HANDLE h_priority_file, Element* p_element, int line_index)
 {
 	if (NULL == h_priority_file)
@@ -238,7 +256,15 @@ int set_mission_index(HANDLE h_priority_file, Element* p_element, int line_index
 	return count_charcters_in_line;
 }
 
+/* int get_mission:
 
+* Parameters:
+* HANDLE h_mission_file - handle to a file created with read permission.
+
+* Return value:
+* on success - a positive integer that was read from the mission file.
+* on failure - returns FAILURE(-1).
+*/
 int get_mission(HANDLE h_mission_file)
 {
 	int ret_read = 0;
@@ -285,6 +311,18 @@ int get_mission(HANDLE h_mission_file)
 }
 
 
+
+/* Queue* create_queue: 
+* this function initializes the queue and in addition pushes all elements to it.
+
+* Parameters:
+* HANDLE h_priority_file - handle to a file created with read permission.
+* int number_of_missions - number of lines in the file. 
+
+* Return value:
+* on success - a pointer tp a queue structure.
+* on failure - NULL
+*/
 Queue* create_queue(HANDLE h_priority_file, int number_of_missions)
 {
 	Queue* q = NULL;
@@ -333,7 +371,7 @@ Queue* create_queue(HANDLE h_priority_file, int number_of_missions)
 
 
 
-/* HANDLE create_thread_simple:
+/* HANDLE create_thread_simple: a wrapper to CreateThread.
 * Description - creates a thread using CreateThread.
 
 * Parameters:
@@ -342,7 +380,8 @@ Queue* create_queue(HANDLE h_priority_file, int number_of_missions)
 * Data* thread_data - pointer to an array of struct Data containg each thread's data.
 
 * Return Value:
-* returns a handle to the thread.
+* on success - a handle to the thread.
+* on failure - NULL.
 */
 HANDLE create_thread_simple(LPTHREAD_START_ROUTINE p_start_routine,
 	LPDWORD p_thread_id, Data* thread_data)
@@ -373,7 +412,23 @@ HANDLE create_thread_simple(LPTHREAD_START_ROUTINE p_start_routine,
 }
 
 
-int* find_prime_factors(int* p_primes, int* allocation_size, int n, int* p_number_of_primes)
+
+/* int* find_prime_factors:
+* Description - using the algorithm to find prime factors of a number to fill an
+* array of integers with all the prime factors of the given number.
+
+* Parameters:
+* int* p_primes - an allocated array of integers.
+* int* allocation_size - pointer to an integer representing the allocation size if the array - might change
+if reallcation is needed.
+* int num - number to find it's prime factors.
+* int* p_number_of_primes - pointer to an integer that represents the number of prime factors of num - calculated in the function.
+
+* Return Value:
+* on success - pointer to the p_primes array.
+* in failure - NULL.
+*/
+int* find_prime_factors(int* p_primes, int* allocation_size, int num, int* p_number_of_primes)
 {
 
 	int index = 0;
@@ -382,13 +437,13 @@ int* find_prime_factors(int* p_primes, int* allocation_size, int n, int* p_numbe
 
 
 	//get number of 2 needed.
-	if (0 == n)
+	if (0 == num)
 	{
 		printf("find_prime_factors: invalid input.\n");
 		return NULL;
 	}
 
-	while ((n % 2) == 0)
+	while ((num % 2) == 0)
 	{
 		if (index >= *allocation_size)
 		{
@@ -404,10 +459,8 @@ int* find_prime_factors(int* p_primes, int* allocation_size, int n, int* p_numbe
 			p_primes = temp;
 		}
 
-		n = n / 2;
+		num = num / 2;
 		p_primes[index] = 2;
-
-		printf("Primes[%d] = %d\n", index, p_primes[index]);
 		*p_number_of_primes += 1;
 		index += 1;
 	}
@@ -415,9 +468,9 @@ int* find_prime_factors(int* p_primes, int* allocation_size, int n, int* p_numbe
 
 	//get rest of prime numbers
 	int i = 3;
-	while (i <= (int)sqrt(n))
+	while (i <= (int)sqrt(num))
 	{
-		while ((n % i) == 0)
+		while ((num % i) == 0)
 		{
 			if (index >= *allocation_size)
 			{
@@ -433,16 +486,15 @@ int* find_prime_factors(int* p_primes, int* allocation_size, int n, int* p_numbe
 				p_primes = temp;
 			}
 
-			n = n / i;
+			num = num / i;
 			p_primes[index] = i;
-			printf("Primes[%d] = %d\n", index, p_primes[index]);
 			*p_number_of_primes += 1;
 			index += 1;
 		}
 		i += 2;
 	}
 
-	if (n > 2)
+	if (num > 2)
 	{
 		if (index >= *allocation_size)
 		{
@@ -457,16 +509,28 @@ int* find_prime_factors(int* p_primes, int* allocation_size, int n, int* p_numbe
 			p_primes = temp;
 		}
 
-		p_primes[index] = n;
+		p_primes[index] = num;
 		*p_number_of_primes += 1;
-		printf("Primes[%d] = %d\n", index, p_primes[index]);
-
 	}
 
 	return p_primes;
 }
 
 
+
+/* int get_mission:
+
+* Parameters:
+* char* str - an allocated string that will be modified. 
+* int allocation_size - allocation size of the given string.
+* int mission - the number that we previously found it's prime factors. 
+* int const* p_primes - pointer to the array of the prime factors. 
+* int number_of_primes - number of prime factors for the mission. 
+
+* Return value:
+* on success - SUCCESS(0).
+* on failure - FAILURE(-1).
+*/
 int set_print_format(char* str, int allocation_size, int mission, int const* p_primes, int number_of_primes)
 {
 	int bytes_written = 0;
