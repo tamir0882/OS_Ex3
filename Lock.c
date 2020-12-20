@@ -4,6 +4,11 @@
 #include "HardCodedData.h"
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
+//Description - this function initialize space in memory for a new lock, 
+//and initialize the requested synchronization struct for each of it's field attributes.
+//Parameters - No input parameters. The output parameter is a pointer to the new initialized lock.
+//Returns - pointer to a struct of type Lock.
+
 Lock* InitializeLock()
 {
 	Lock* lock = (Lock*)malloc(sizeof(Lock));
@@ -66,6 +71,15 @@ Lock* InitializeLock()
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
+
+//Description - this function lets the given lock be used by a thread for reading. 
+//the thread waits if there is other thread that writes given the state of turnstile attribute, or continues with the operation.
+//The thread locks the mutex attribute and if the room attribute of the lock is empty it sets it to not be empty and 
+//raises the number of current readers. Then, the mutex attribute is released.
+//if all has succeeded, the return value is set to SUCCESS. Else, destroy the lock and the return value is FAILURE.
+//Parameters - The input parameter is pointer to a struct of type Lock. The output parameter is an int.
+//Returns - int with value that determines if the operation has succeeded or failed.
+
 int read_lock(Lock* lock)
 {
 	int wait_code = 0;
@@ -124,6 +138,13 @@ Destroy_Lock:
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
+//Description - this function lets the given lock be freed from the use of a thread from reading. 
+//the thread locks the lock's mutex attribute and lowers the number of readers by one. if after that the number of readers is 0, 
+//it sets it to be empty. Then, the thread release the mutex attribute for any thread who wants to use it.  
+//if all has succeeded, the return value is set to SUCCESS. Else, destroy the lock and the return value is FAILURE.
+//Parameters - The input parameter is pointer to a struct of type Lock. The output parameter is an int.
+//Returns - int with value that determines if the operation has succeeded or failed.
+
 int read_release(Lock* lock)
 {
 	int wait_code = 0;
@@ -167,6 +188,12 @@ Destroy_Lock:
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
+//Description - this function lets the given lock be used by a thread for writhing.
+//the thread locks the turnstile attribute of the lock and the mutex attribute for any thread who wants to use it.  
+//if all has succeeded, the return value is set to SUCCESS. Else, destroy the lock and the return value is FAILURE.
+//Parameters - The input parameter is pointer to a struct of type Lock. The output parameter is an int.
+//Returns - int with value that determines if the operation has succeeded or failed.
+
 int write_lock(Lock* lock)
 {
 	int wait_code = 0;
@@ -204,6 +231,12 @@ Destroy_Lock:
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
+//Description - this function lets the given lock be freed from the use of a thread from writing.  
+//the thread releases the turnstile attribute of the lock and the mutex attribute for any thread who wants to use it.  
+//if all has succeeded, the return value is set to SUCCESS. Else, destroy the lock and the return value is FAILURE.
+//Parameters - The input parameter is pointer to a struct of type Lock. The output parameter is an int.
+//Returns - int with value that determines if the operation has succeeded or failed.
+
 int write_release(Lock* lock)
 {
 	int ret_val = 0;
@@ -229,6 +262,16 @@ Destroy_Lock:
 	}
 	return FAILURE;
 }
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//Description - this function destorys the lock and prevent any use of it for the future.
+// after calling for the function, a check is being made if the handle for any attribute of the lock is NULL.
+//if so, continue. If the attribute is not NULL, close the handle, and set the attribute as NULL.
+//if all works, the lock frees the resources it has used, turns to NULL, and the return value is SUCCESS. 
+//If anything failed in the way, an error is being printed and the return value is FAILURE.
+////Parameters - The input parameter is pointer to a struct of type Lock. The output parameter is an int.
+//Returns - int with value that determines if the operation has succeeded or failed.
 
 int DestroyLock(Lock* lock)
 {
